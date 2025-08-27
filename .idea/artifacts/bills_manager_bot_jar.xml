@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="bills-manager-bot:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/bills_manager_bot_jar</output-path>
+    <root id="archive" name="bills-manager-bot.jar">
+      <element id="module-output" name="bills-manager-bot" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/gson-2.10.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/aws-lambda-java-core-1.2.3.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
