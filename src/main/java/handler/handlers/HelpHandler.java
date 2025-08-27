@@ -1,6 +1,7 @@
 package handler.handlers;
 
 import handler.telegram.TelegramBot;
+import handler.telegram.Update;
 
 public class HelpHandler extends BaseHandler {
     public HelpHandler(TelegramBot telegramBot) {
@@ -8,7 +9,7 @@ public class HelpHandler extends BaseHandler {
     }
 
     @Override
-    public void handle(handler.Update update, com.amazonaws.services.lambda.runtime.Context context) {
+    public void handle(Update update, com.amazonaws.services.lambda.runtime.Context context) {
         long chatId = update.message.chat.id;
         String helpMessage = "Comandos disponíveis:\n" +
                 "/adicionarDespesa <valor>* <descrição>* <categoria> | '*' -> propriedades obrigatórias\n" +

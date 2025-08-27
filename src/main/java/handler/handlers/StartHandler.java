@@ -1,7 +1,8 @@
 package handler.handlers;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import handler.Update;
+import handler.enums.ParseMode;
+import handler.telegram.Update;
 import handler.telegram.TelegramBot;
 import handler.user.User;
 import handler.user.UserRepository;
@@ -26,6 +27,6 @@ public class StartHandler extends BaseHandler{
                 "/listarDespesas [mês] [ano] | Exemplo: /listarDespesas 08 2023\n" +
                 "/removerDespesa <id>* | '*' -> propriedade obrigatória\n" +
                 "/ajuda - Mostra esta mensagem de ajuda";
-        this.telegramBot.sendMessageToTelegram(update.message.chat.id, response, context);
+        this.telegramBot.sendMessageToTelegram(update.message.chat.id, response, ParseMode.MarkdownV2,context);
     }
 }

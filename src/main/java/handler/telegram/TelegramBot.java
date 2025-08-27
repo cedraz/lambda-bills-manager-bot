@@ -1,26 +1,37 @@
 package handler.telegram;
 
 import com.amazonaws.services.lambda.runtime.Context;
+import com.google.gson.Gson;
+import handler.enums.ParseMode;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TelegramBot {
     private final HttpClient httpClient;
+    private static final Gson gson = new Gson();
 
     public TelegramBot(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 
-    public void sendMessageToTelegram(long chatId, String text, Context context) {
+    public void sendMessageToTelegram(long chatId, String text, ParseMode parseMode, Context context) {
         String botToken = System.getenv("TELEGRAM_BOT_TOKEN");
         var logger = context.getLogger();
 
-        String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("chat_id", chatId);
+        payload.put("text", text);
+        if (parseMode != ParseMode.None) {
+            payload.put("parse_mode", parseMode);
+        }
 
-        String jsonPayload = String.format("{\"chat_id\": %d, \"text\": \"%s\"}", chatId, text);
+        String jsonPayload = gson.toJson(payload);
+        String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -36,5 +47,9 @@ public class TelegramBot {
         } catch (Exception e) {
             logger.log("ERRO ao enviar mensagem para o Telegram: " + e.getMessage());
         }
+    }
+
+    public void sendMessageToTelegram(long chatId, String text, Context context) {
+        sendMessageToTelegram(chatId, text, null, context);
     }
 }

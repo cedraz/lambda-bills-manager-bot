@@ -1,4 +1,4 @@
-package handler;
+package handler.telegram;
 
 public class Message {
     public String text;

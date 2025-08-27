@@ -4,9 +4,11 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.google.gson.Gson;
 import handler.dynamo.DynamoDB;
-import handler.handlers.AddExpenseHandler;
+import handler.expense.ExpenseRepository;
+import handler.handlers.expense_handlers.AddExpenseHandler;
 import handler.handlers.StartHandler;
 import handler.telegram.TelegramBot;
+import handler.telegram.Update;
 import handler.user.UserRepository;
 
 import java.net.http.HttpClient;
@@ -19,6 +21,7 @@ public class AwsLambdaFunctions implements RequestHandler<Map<String, Object>, S
     private static final TelegramBot telegramBot = new TelegramBot(httpClient);
     private static final DynamoDB dynamoDB = new DynamoDB();
     private static final UserRepository userRepository = new UserRepository(dynamoDB);
+    private static final ExpenseRepository expenseRepository = new ExpenseRepository(dynamoDB);
 
     @Override
     public String handleRequest(Map<String, Object> input, Context context) {
@@ -40,7 +43,7 @@ public class AwsLambdaFunctions implements RequestHandler<Map<String, Object>, S
                 StartHandler startHandler = new StartHandler(telegramBot, userRepository);
                 startHandler.handle(update, context);
             } else if (receivedText.startsWith("/adicionarDespesa")) {
-                AddExpenseHandler addExpenseHandler = new AddExpenseHandler(telegramBot, new handler.expense.ExpenseRepository(dynamoDB));
+                AddExpenseHandler addExpenseHandler = new AddExpenseHandler(telegramBot, expenseRepository, userRepository);
                 addExpenseHandler.handle(update, context);
             } else {
                 long chatId = update.message.chat.id;

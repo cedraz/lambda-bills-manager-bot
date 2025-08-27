@@ -1,7 +1,7 @@
 package handler.handlers;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import handler.Update;
+import handler.telegram.Update;
 import handler.telegram.TelegramBot;
 
 public abstract class BaseHandler {
