@@ -2,7 +2,6 @@ package handler.handlers.expense_handlers;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import handler.enums.ConversationState;
-import handler.enums.ParseMode;
 import handler.handlers.BaseHandler;
 import handler.telegram.Update;
 import handler.expense.Expense;
@@ -12,12 +11,11 @@ import handler.user.User;
 import handler.user.UserRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class AddExpenseHandler extends BaseHandler {
     private final ExpenseRepository expenseRepository;
     private final UserRepository userRepository;
+    private User currentUser;
 
     public AddExpenseHandler(TelegramBot telegramBot, ExpenseRepository expenseRepository, UserRepository userRepository) {
         super(telegramBot);
@@ -25,88 +23,86 @@ public class AddExpenseHandler extends BaseHandler {
         this.userRepository = userRepository;
     }
 
+    public AddExpenseHandler(TelegramBot telegramBot, ExpenseRepository expenseRepository, UserRepository userRepository, User user) {
+        super(telegramBot);
+        this.expenseRepository = expenseRepository;
+        this.userRepository = userRepository;
+        this.currentUser = user;
+    }
+
     @Override
     public void handle(Update update, Context context) {
-        var logger = context.getLogger();
-        try {
-            Expense expense = validateAndParseExpense(update, context);
-            long chatId = update.message.chat.id;
-            this.expenseRepository.saveExpense(chatId, expense);
-            String response = "Despesa adicionada com sucesso: " + expense.getDescription() + " - R$" + (expense.getAmountAsString()) + " na categoria " + expense.getCategory();
-            this.telegramBot.sendMessageToTelegram(chatId, response, context);
-        } catch (Exception e) {
-            if (e instanceof IllegalArgumentException) {
+        long chatId = update.message.chat.id;
+
+        if (this.currentUser == null) {
+            this.currentUser = this.userRepository.findByChatId(chatId);
+            if (this.currentUser == null) {
+                this.telegramBot.sendMessageToTelegram(chatId, "Por favor, inicie uma conversa comigo usando o comando /start.", context);
                 return;
             }
+        }
 
-            logger.log("ERROR saving expense: " + e.getMessage());
-            long chatId = update.message.chat.id;
-            String response = "Erro ao adicionar despesa. Verifique o formato e tente novamente.";
+        this.currentUser.setConversationState(ConversationState.AWAITING_AMOUNT);
+        this.userRepository.updateUser(this.currentUser);
+
+        String response = "Iniciando o processo de adição de despesa.\n" +
+                "Envie o valor da despesa (ex: 12,34 ou 12.34).";
+        this.telegramBot.sendMessageToTelegram(chatId, response, context);
+    }
+
+    public void addAmount(Update update, Context context) {
+        long chatId = update.message.chat.id;
+        try {
+            String message = update.message.text;
+            double amountValue = Double.parseDouble(message.trim().replace(",", "."));
+            int amountInCents = (int) Math.round(amountValue * 100);
+
+            this.currentUser.setInProgressExpense(new Expense(amountInCents, "", LocalDate.now()));
+            this.currentUser.setConversationState(ConversationState.AWAITING_DESCRIPTION);
+            this.userRepository.updateUser(this.currentUser);
+
+            String response = "Valor definido como R$ " + String.format("%.2f", amountValue) + ". Agora, envie a descrição da despesa.";
             this.telegramBot.sendMessageToTelegram(chatId, response, context);
+        } catch (NumberFormatException e) {
+            this.telegramBot.sendMessageToTelegram(chatId, "Valor inválido. Por favor, envie apenas o número (ex: 35.50).", context);
         }
     }
 
     public void addDescription(Update update, Context context) {
-        var logger = context.getLogger();
-        try {
-            String message = update.message.text;
-            long chatId = update.message.chat.id;
-            ArrayList<String> parts = new ArrayList<>(List.of(message.split(" ")));
+        long chatId = update.message.chat.id;
+        String description = update.message.text.trim();
 
-            if (parts.size() < 2) {
-                logger.log("Invalid expense format received.");
-                String response = "Formato inválido. Use: /adicionarDespesa <descrição>* | '*' -> propriedades obrigatórias";
-                this.telegramBot.sendMessageToTelegram(chatId, response, context);
-                throw new IllegalArgumentException("Invalid expense format");
-            }
-
-            String descriptionPart = parts.get(1);
-
-            User user = this.userRepository.findByChatId(chatId);
-
-            if (user == null || user.inProgressExpense == null) {
-                String response = "Nenhuma despesa em andamento. Use /adicionarDespesa para iniciar.";
-                this.telegramBot.sendMessageToTelegram(chatId, response, context);
-                return;
-            }
-
-            user.inProgressExpense.setDescription(descriptionPart);
-            user.setConversationState(ConversationState.AWAITING_CATEGORY);
-            this.userRepository.updateUser(user);
-
-            String response = "Descrição atualizada para: " + descriptionPart + ". Agora, caso deseje, envie a categoria da despesa. Caso não deseje passar nada, apenas envie /pular.";
-            this.telegramBot.sendMessageToTelegram(chatId, response, ParseMode.MarkdownV2,context);
-        } catch (Exception e) {
-            if (e instanceof IllegalArgumentException) {
-                return;
-            }
-
-            logger.log("ERROR updating expense description: " + e.getMessage());
-            long chatId = update.message.chat.id;
-            String response = "Erro ao atualizar a descrição. Verifique o formato e tente novamente.";
-            this.telegramBot.sendMessageToTelegram(chatId, response, context);
+        if (description.isEmpty()) {
+            this.telegramBot.sendMessageToTelegram(chatId, "A descrição não pode estar vazia. Por favor, tente novamente.", context);
+            return;
         }
+
+        this.currentUser.getInProgressExpense().setDescription(description);
+        this.currentUser.setConversationState(ConversationState.AWAITING_CATEGORY);
+        this.userRepository.updateUser(this.currentUser);
+
+        String response = "Descrição adicionada. Agora, envie a categoria. (ou digite /pular)";
+        this.telegramBot.sendMessageToTelegram(chatId, response, context);
     }
 
-    private Expense validateAndParseExpense(Update update, Context context) {
-        var logger = context.getLogger();
-        String message = update.message.text;
+    public void addCategory(Update update, Context context) {
         long chatId = update.message.chat.id;
-        ArrayList<String> parts = new ArrayList<>(List.of(message.split(" ")));
+        String message = update.message.text.trim();
 
-        if (parts.size() < 3) {
-            logger.log("Invalid expense format received.");
-            String response = "Formato inválido. Use: /adicionarDespesa <valor>* <descrição>* <categoria> | '*' -> propriedades obrigatórias";
-            this.telegramBot.sendMessageToTelegram(chatId, response, context);
-            throw new IllegalArgumentException("Invalid expense format");
+        String category = "Outros";
+        if (!message.equalsIgnoreCase("/pular")) {
+            category = message;
         }
 
-        String amountPart = parts.get(1);
-        String descriptionPart = parts.get(2);
-        String categoryPart = parts.size() >= 4 ? parts.get(3) : "Outros";
-        int amount = Integer.parseInt(amountPart); // Convert to cents
-        LocalDate date = LocalDate.now();
+        Expense finalExpense = this.currentUser.getInProgressExpense();
+        finalExpense.setCategory(category);
 
-        return new Expense(amount, descriptionPart, date, categoryPart);
+        this.expenseRepository.saveExpense(chatId, finalExpense);
+        this.currentUser.setInProgressExpense(null);
+        this.currentUser.setConversationState(ConversationState.NONE);
+        this.userRepository.updateUser(this.currentUser);
+
+        String response = "✅ Despesa adicionada com sucesso na categoria: " + category + ".";
+        this.telegramBot.sendMessageToTelegram(chatId, response, context);
     }
 }

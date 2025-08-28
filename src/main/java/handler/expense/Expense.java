@@ -3,6 +3,7 @@ package handler.expense;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +21,7 @@ public class Expense {
     }
 
     public Expense(int amount, String description, LocalDate date, String category) {
-        this.amount = amount * 100; // Store amount in cents
+        this.amount = amount; // Store amount in cents
         this.description = description;
         this.date = date;
         this.category = category;
@@ -40,7 +41,7 @@ public class Expense {
     }
 
     public String getAmountAsString() {
-        return String.format("%.2f", amount / 100.0);
+        return String.format("%.2f", this.amount / 100.0);
     }
 
     public String getDescription() {
@@ -73,11 +74,17 @@ public class Expense {
 
     @Override
     public String toString() {
-        return "Expense{" +
-                "amount=" + amount +
-                ", description='" + description + '\'' +
-                ", date=" + date +
-                ", category='" + category + '\'' +
-                '}';
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        return String.format(
+                "🗓️ <b>Data:</b> %s\n" +
+                        "📝 <b>Descrição:</b> %s\n" +
+                        "📦 <b>Categoria:</b> %s\n" +
+                        "💰 <b>Valor:</b> R$ %s",
+                this.date.format(dateFormatter),
+                this.description,
+                this.category,
+                this.getAmountAsString()
+        );
     }
 }

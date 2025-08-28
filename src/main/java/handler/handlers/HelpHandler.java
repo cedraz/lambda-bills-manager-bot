@@ -14,7 +14,6 @@ public class HelpHandler extends BaseHandler {
         String helpMessage = "Comandos disponíveis:\n" +
                 "/adicionarDespesa <valor>* <descrição>* <categoria> | '*' -> propriedades obrigatórias\n" +
                 "/listarDespesas [mês] [ano] | Exemplo: /listarDespesas 08 2023\n" +
-                "/removerDespesa <id>* | '*' -> propriedade obrigatória\n" +
                 "/ajuda - Mostra esta mensagem de ajuda";
         this.telegramBot.sendMessageToTelegram(chatId, helpMessage, context);
     }

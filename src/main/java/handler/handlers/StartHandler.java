@@ -21,12 +21,12 @@ public class StartHandler extends BaseHandler{
         this.userRepository.saveUser(user);
 
         String response =
-                "Olá " + user.getFirst_name() + "! Seja bem-vindo ao bot. Você foi registrado com sucesso. \n" +
-                "Comandos disponíveis:\n" +
-                "/adicionarDespesa <valor>* <descrição>* <categoria> | '*' -> propriedades obrigatórias\n" +
-                "/listarDespesas [mês] [ano] | Exemplo: /listarDespesas 08 2023\n" +
-                "/removerDespesa <id>* | '*' -> propriedade obrigatória\n" +
-                "/ajuda - Mostra esta mensagem de ajuda";
-        this.telegramBot.sendMessageToTelegram(update.message.chat.id, response, ParseMode.MarkdownV2,context);
+                "Olá, <b>" + user.getFirst_name() + "</b>! Seja bem-vindo(a) ao bot. Você foi registrado com sucesso.\n\n" +
+                        "<b>Comandos disponíveis:</b>\n" +
+                        "<code>/adicionarDespesa</code> - Inicia o processo para adicionar uma despesa.\n" +
+                        "<code>/listarDespesas</code> - Lista suas despesas recentes.\n" +
+                        "<code>/removerDespesa</code> - Remove uma despesa pelo ID.\n" +
+                        "<code>/ajuda</code> - Mostra esta mensagem de ajuda.";
+        this.telegramBot.sendMessageToTelegram(update.message.chat.id, response, ParseMode.HTML,context);
     }
 }

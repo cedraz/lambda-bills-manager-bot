@@ -7,7 +7,6 @@ import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class UserRepository {
@@ -33,7 +32,13 @@ public class UserRepository {
                 item.containsKey("username") ? item.get("username").s() : null
         );
 
-        // Define o estado da conversa de forma segura
+        if (item.containsKey("inProgressExpense")) {
+            Map<String, AttributeValue> expenseMap = item.get("inProgressExpense").m();
+            Expense inProgressExpense = getExpenseFromMap(expenseMap);
+
+            user.setInProgressExpense(inProgressExpense);
+        }
+
         if (item.containsKey("conversationState")) {
             String stateAsString = item.get("conversationState").s();
             user.setConversationState(ConversationState.fromString(stateAsString)); // Usando o método seguro
